@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>十五条佛规 · 拼图</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "KaiTi", "STKaiti", "BiauKai", "DFKai-SB", "楷体", "Kaiti TC", "Kaiti SC", serif;
+    background: linear-gradient(180deg, #f8efd4 0%, #ecdfb8 100%);
+    color: #3a2416;
+    margin: 0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    color: #8b0000;
+    margin: 8px 0 4px;
+    letter-spacing: 6px;
+    font-size: 28px;
+  }
+  .subtitle { color:#6b3a1e; margin-bottom: 12px; font-size: 14px; }
+  .menu { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 8px; }
+  button {
+    padding: 10px 18px;
+    background: #8b0000;
+    color: #fff7e5;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  button:hover { background: #a52a2a; }
+  button.secondary { background: #5c3317; }
+  button.secondary:hover { background: #7a4620; }
+  .status {
+    margin: 10px 0;
+    font-size: 16px;
+    min-height: 24px;
+    text-align: center;
+    color: #3a2416;
+  }
+  .win { color: #006400; font-weight: bold; font-size: 20px; }
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 4px 0 10px;
+    font-size: 16px;
+  }
+  .timer {
+    font-variant-numeric: tabular-nums;
+    background: #fff5e1;
+    border: 1px solid #8b0000;
+    color: #8b0000;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    min-width: 92px;
+    text-align: center;
+  }
+  .timer.stopped { background: #c8e6c9; border-color: #1b5e20; color: #1b5e20; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(40, 20, 10, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+    padding: 16px;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: #fff7e5;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    max-width: 460px;
+    width: 100%;
+    padding: 20px 22px;
+    color: #3a2416;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { color: #8b0000; margin: 0 0 8px; font-size: 22px; }
+  .modal .step-indicator { color: #6b3a1e; font-size: 13px; margin-bottom: 10px; }
+  .modal .step-body { font-size: 15px; line-height: 1.55; min-height: 160px; }
+  .modal .step-body p { margin: 6px 0; }
+  .modal-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 8px; }
+  .modal-dots { display: flex; gap: 6px; }
+  .modal-dots span { width: 8px; height: 8px; border-radius: 50%; background: #d7c69a; }
+  .modal-dots span.active { background: #8b0000; }
+
+  /* Mini demo (inside tutorial) */
+  .demo-board {
+    display: grid;
+    grid-template-columns: repeat(5, 40px);
+    grid-template-rows: repeat(1, 40px);
+    gap: 2px;
+    background: #8b0000;
+    padding: 3px;
+    border-radius: 4px;
+    justify-content: center;
+    margin: 10px auto;
+    width: fit-content;
+  }
+  .demo-board .cell { background: #e8dcb8; position: relative; }
+  .demo-board .tile { font-size: 20px; }
+  .demo-tray {
+    display: flex; justify-content: center; gap: 6px; margin: 8px 0;
+  }
+  .demo-tray .tile {
+    position: static;
+    width: 40px; height: 40px;
+    border: 1px solid #8b0000;
+  }
+  .demo-hint { text-align: center; font-size: 13px; color: #6b3a1e; min-height: 20px; }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    margin: 10px 0;
+    max-width: 260px;
+  }
+  .mini-grid .mc {
+    aspect-ratio: 1;
+    background: #fff5e1;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600;
+  }
+  .mini-grid .mc.num { background: #f4e1a4; color: #5c3317; }
+  .mini-grid .mc.done { background: #c8e6c9; color: #1b5e20; }
+  .mini-grid .mc.empty { background: #e8dcb8; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(10, 48px);
+    grid-template-rows: repeat(10, 48px);
+    gap: 2px;
+    background: #8b0000;
+    padding: 4px;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .cell {
+    background: #e8dcb8;
+    position: relative;
+  }
+  .tile {
+    position: absolute;
+    inset: 0;
+    background: #fff5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    touch-action: none;
+    border-radius: 2px;
+    transition: background 0.15s, transform 0.2s;
+  }
+  .tile:active { cursor: grabbing; }
+  .tile.dragging { opacity: 0.3; }
+  .tile.ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.92;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    transform: scale(1.08);
+  }
+  .cell.drag-over { background: #ffd54f; outline: 2px solid #8b0000; outline-offset: -2px; }
+  .tile.digit2 { font-size: 16px; }
+  .tile.number {
+    background: #f4e1a4;
+    color: #5c3317;
+    cursor: not-allowed;
+    font-weight: 700;
+  }
+  .tile.number:hover { background: #f4e1a4; }
+  .tile.phrase-locked {
+    background: #c8e6c9;
+    color: #1b5e20;
+    cursor: default;
+  }
+  .tile.phrase-locked:hover { background: #c8e6c9; }
+  .tile:hover { background: #ffeec9; }
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.5); }
+    50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+  }
+  .tile.pulse { animation: pulse 0.6s ease-out; }
+  @media (max-width: 560px) {
+    .board { grid-template-columns: repeat(10, 32px); grid-template-rows: repeat(10, 32px); }
+    .tile { font-size: 15px; }
+    .tile.digit2 { font-size: 11px; }
+    h1 { font-size: 22px; letter-spacing: 4px; }
+  }
+</style>
+</head>
+<body>
+  <h1>十五条佛规</h1>
+  <div class="subtitle">记忆拼图</div>
+  <div class="menu">
+    <button onclick="startGame()">开始 / 重新打乱</button>
+    <button class="secondary" id="stopBtn" onclick="stopGame()" style="display:none;">停止</button>
+    <button class="secondary" onclick="openTutorial()">如何游玩</button>
+  </div>
+  <div class="hud">
+    <div class="timer" id="timer">00:00.0</div>
+  </div>
+  <div class="status" id="status">点击「开始」先观看完整拼图，再还原打乱的字</div>
+  <div class="board" id="board"></div>
+
+  <div class="modal-backdrop hidden" id="tutorial">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tut-title">
+      <h2 id="tut-title"></h2>
+      <div class="step-indicator" id="tut-step-num"></div>
+      <div class="step-body" id="tut-body"></div>
+      <div class="modal-nav">
+        <div class="modal-dots" id="tut-dots"></div>
+        <div>
+          <button class="secondary" id="tut-prev" onclick="tutorialPrev()">上一步</button>
+          <button id="tut-next" onclick="tutorialNext()">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const GRID = [
+  ['1','尊','敬','仙','佛','9','莫','着','形','相'],
+  ['2','遵','前','提','后','10','手','续','必','清'],
+  ['3','斋','庄','中','正','11','出','告','反','面'],
+  ['4','循','规','蹈','矩','12','不','乱','系','统'],
+  ['5','责','任','负','起','13','爱','惜','公','物'],
+  ['6','重','圣','轻','凡','14','活','泼','应','事'],
+  ['7','谦','恭','和','蔼','15','谨','言','慎','行'],
+  ['8','勿','弃','圣','训', null, null, null, null, null],
+  ['先','王','之','道','正','心','修','身','为','本'],
+  ['圣','人','之','教','礼','门','义','路','为','先'],
+];
+const R = 10, C = 10;
+
+// Phrases: groups of cells that light up together when completed.
+const PHRASES = (() => {
+  const p = [];
+  for (let r = 0; r < 7; r++) {
+    p.push([[r,0],[r,1],[r,2],[r,3],[r,4]]);
+    p.push([[r,5],[r,6],[r,7],[r,8],[r,9]]);
+  }
+  p.push([[7,0],[7,1],[7,2],[7,3],[7,4]]); // rule 8
+  p.push(Array.from({length: 10}, (_, c) => [8, c])); // row 8 (先王之道…)
+  p.push(Array.from({length: 10}, (_, c) => [9, c])); // row 9 (圣人之教…)
+  return p;
+})();
+
+function isNumberText(t) { return /^\d+$/.test(t); }
+
+let board = [];
+let locked = []; // locked[r][c] true if number or part of completed phrase
+let completedPhrases = new Set();
+let gameActive = false;
+let previewTimer = null;
+let timerStart = 0;
+let timerEndMs = 0;
+let timerRAF = null;
+
+function mkTile(r, c) {
+  if (GRID[r][c] === null) return null;
+  return { text: GRID[r][c], homeR: r, homeC: c };
+}
+
+function solvedBoard() {
+  const b = [];
+  for (let r = 0; r < R; r++) {
+    const row = [];
+    for (let c = 0; c < C; c++) row.push(mkTile(r, c));
+    b.push(row);
+  }
+  return b;
+}
+
+function freshLocked() {
+  const l = [];
+  for (let r = 0; r < R; r++) {
+    const row = [];
+    for (let c = 0; c < C; c++) {
+      row.push(GRID[r][c] !== null && isNumberText(GRID[r][c]));
+    }
+    l.push(row);
+  }
+  return l;
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      const t = board[r][c];
+      if (t) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = t.text;
+        if (t.text.length > 1) tile.classList.add('digit2');
+        const isNumber = isNumberText(t.text);
+        const isLocked = locked[r][c];
+        if (isNumber) tile.classList.add('number');
+        else if (isLocked) tile.classList.add('phrase-locked');
+        tile.dataset.r = r;
+        tile.dataset.c = c;
+        if (gameActive && !isLocked) {
+          tile.addEventListener('pointerdown', (e) => beginDrag(e, { r, c }));
+        }
+        cell.appendChild(tile);
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+function setStatus(html) {
+  document.getElementById('status').innerHTML = html;
+}
+
+function startGame() {
+  if (previewTimer) clearTimeout(previewTimer);
+  gameActive = false;
+  completedPhrases.clear();
+  board = solvedBoard();
+  locked = freshLocked();
+  render();
+  stopTimer();
+  resetTimerDisplay();
+  document.getElementById('stopBtn').style.display = '';
+  setStatus('观看完整拼图 … 5 秒后打乱');
+  let remaining = 5;
+  const tick = () => {
+    setStatus(`观看完整拼图 … ${remaining} 秒后打乱`);
+    remaining--;
+    if (remaining < 0) {
+      scramble();
+      gameActive = true;
+      setStatus('将任意字拖曳至空格。每完成一句便会锁定。');
+      render();
+      startTimer();
+    } else {
+      previewTimer = setTimeout(tick, 1000);
+    }
+  };
+  tick();
+}
+
+function stopGame() {
+  if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+  gameActive = false;
+  completedPhrases.clear();
+  board = solvedBoard();
+  locked = freshLocked();
+  stopTimer();
+  resetTimerDisplay();
+  document.getElementById('stopBtn').style.display = 'none';
+  setStatus('已停止。点击「开始」开启新一局。');
+  render();
+}
+
+// ---------- Stopwatch ----------
+function formatTime(ms) {
+  const totalSec = ms / 1000;
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  const t = Math.floor((totalSec * 10) % 10);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${t}`;
+}
+function updateTimerDisplay() {
+  const el = document.getElementById('timer');
+  const ms = (timerEndMs || performance.now()) - timerStart;
+  el.textContent = formatTime(ms);
+}
+function startTimer() {
+  timerStart = performance.now();
+  timerEndMs = 0;
+  const el = document.getElementById('timer');
+  el.classList.remove('stopped');
+  const loop = () => {
+    if (timerEndMs) return;
+    updateTimerDisplay();
+    timerRAF = requestAnimationFrame(loop);
+  };
+  timerRAF = requestAnimationFrame(loop);
+}
+function stopTimer() {
+  if (timerRAF) cancelAnimationFrame(timerRAF);
+  timerRAF = null;
+  if (timerStart && !timerEndMs) {
+    timerEndMs = performance.now();
+    updateTimerDisplay();
+    document.getElementById('timer').classList.add('stopped');
+  }
+}
+function resetTimerDisplay() {
+  timerStart = 0;
+  timerEndMs = 0;
+  const el = document.getElementById('timer');
+  el.textContent = '00:00.0';
+  el.classList.remove('stopped');
+}
+
+function scramble() {
+  // Collect all non-number, non-null positions AND the 5 empty positions;
+  // permute tiles among them. Numbers stay put.
+  const fluidPositions = [];
+  const fluidTiles = [];
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const g = GRID[r][c];
+      if (g === null) {
+        fluidPositions.push([r, c]);
+        fluidTiles.push(null);
+      } else if (!isNumberText(g)) {
+        fluidPositions.push([r, c]);
+        fluidTiles.push(board[r][c]);
+      }
+    }
+  }
+  // Shuffle tiles, place into positions. Reshuffle until no tile is at home
+  // (so the player actually has work to do).
+  let attempts = 0;
+  do {
+    shuffle(fluidTiles);
+    attempts++;
+  } while (attempts < 20 && fluidTiles.every((t, i) => {
+    const [r, c] = fluidPositions[i];
+    return t === null || t.text === GRID[r][c];
+  }));
+  for (let i = 0; i < fluidPositions.length; i++) {
+    const [r, c] = fluidPositions[i];
+    board[r][c] = fluidTiles[i];
+  }
+}
+
+// ---------- Drag ----------
+let drag = null;
+
+function beginDrag(e, source) {
+  if (!gameActive) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (locked[source.r][source.c]) return;
+  e.preventDefault();
+
+  const el = e.currentTarget;
+  const rect = el.getBoundingClientRect();
+  const ghost = el.cloneNode(true);
+  ghost.classList.add('ghost');
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  document.body.appendChild(ghost);
+  el.classList.add('dragging');
+
+  drag = {
+    source,
+    el,
+    ghost,
+    offsetX: e.clientX - rect.left,
+    offsetY: e.clientY - rect.top,
+    lastCell: null,
+    pointerId: e.pointerId,
+    scrollDir: 0,
+    scrollRAF: null,
+  };
+
+  try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  window.addEventListener('pointermove', onPointerMove, { passive: false });
+  window.addEventListener('pointerup', onPointerEnd);
+  window.addEventListener('pointercancel', onPointerEnd);
+  startAutoScroll();
+}
+
+function onPointerMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+  drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
+  drag.ghost.style.top = (e.clientY - drag.offsetY) + 'px';
+
+  drag.ghost.style.display = 'none';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  drag.ghost.style.display = '';
+  const cell = under ? under.closest('.cell') : null;
+
+  if (drag.lastCell && drag.lastCell !== cell) drag.lastCell.classList.remove('drag-over');
+  if (cell) {
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    if (isValidDrop(r, c)) cell.classList.add('drag-over');
+  }
+  drag.lastCell = cell;
+
+  const EDGE = 90;
+  const vh = window.innerHeight;
+  if (e.clientY < EDGE) {
+    drag.scrollDir = -Math.min(20, Math.ceil((EDGE - e.clientY) / 5));
+  } else if (e.clientY > vh - EDGE) {
+    drag.scrollDir = Math.min(20, Math.ceil((e.clientY - (vh - EDGE)) / 5));
+  } else {
+    drag.scrollDir = 0;
+  }
+}
+
+function startAutoScroll() {
+  const step = () => {
+    if (!drag) return;
+    if (drag.scrollDir !== 0) {
+      const before = window.scrollY;
+      window.scrollBy(0, drag.scrollDir);
+      const delta = window.scrollY - before;
+      if (delta !== 0) {
+        drag.ghost.style.top = (parseFloat(drag.ghost.style.top) - delta) + 'px';
+      }
+    }
+    drag.scrollRAF = requestAnimationFrame(step);
+  };
+  drag.scrollRAF = requestAnimationFrame(step);
+}
+
+function isValidDrop(r, c) {
+  if (!drag) return false;
+  if (locked[r][c]) return false;
+  if (r === drag.source.r && c === drag.source.c) return false;
+  return true; // empty cell, or non-locked occupied cell (swap)
+}
+
+function onPointerEnd() {
+  if (!drag) return;
+  const cell = drag.lastCell;
+  const src = drag.source;
+
+  drag.ghost.remove();
+  drag.el.classList.remove('dragging');
+  if (drag.scrollRAF) cancelAnimationFrame(drag.scrollRAF);
+  document.querySelectorAll('.cell.drag-over').forEach(el => el.classList.remove('drag-over'));
+  try { drag.el.releasePointerCapture(drag.pointerId); } catch (_) {}
+  window.removeEventListener('pointermove', onPointerMove);
+  window.removeEventListener('pointerup', onPointerEnd);
+  window.removeEventListener('pointercancel', onPointerEnd);
+  drag = null;
+
+  if (!cell) return;
+  const r = +cell.dataset.r, c = +cell.dataset.c;
+  if (locked[r][c]) return;
+  if (r === src.r && c === src.c) return;
+
+  // swap or move
+  const tmp = board[r][c];
+  board[r][c] = board[src.r][src.c];
+  board[src.r][src.c] = tmp;
+  const newlyCompleted = checkPhrases();
+  render();
+  if (newlyCompleted.length > 0) {
+    playChime();
+    newlyCompleted.forEach(phraseIdx => pulsePhrase(PHRASES[phraseIdx]));
+  }
+  checkWin();
+}
+
+function checkPhrases() {
+  const newlyCompleted = [];
+  PHRASES.forEach((cells, idx) => {
+    if (completedPhrases.has(idx)) return;
+    const allRight = cells.every(([r, c]) => {
+      const t = board[r][c];
+      return t && t.text === GRID[r][c];
+    });
+    if (allRight) {
+      completedPhrases.add(idx);
+      cells.forEach(([r, c]) => { locked[r][c] = true; });
+      newlyCompleted.push(idx);
+    }
+  });
+  return newlyCompleted;
+}
+
+function pulsePhrase(cells) {
+  // brief pulse animation on newly locked tiles
+  requestAnimationFrame(() => {
+    cells.forEach(([r, c]) => {
+      const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      const tile = cell && cell.querySelector('.tile');
+      if (tile) {
+        tile.classList.add('pulse');
+        setTimeout(() => tile.classList.remove('pulse'), 600);
+      }
+    });
+  });
+}
+
+function checkWin() {
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const t = board[r][c];
+      if (GRID[r][c] === null) {
+        if (t !== null) return;
+      } else {
+        if (!t || t.text !== GRID[r][c]) return;
+      }
+    }
+  }
+  gameActive = false;
+  stopTimer();
+  document.getElementById('stopBtn').style.display = 'none';
+  const elapsed = timerEndMs - timerStart;
+  setStatus(`<span class="win">恭喜！您已完成十五条佛规拼图！用时 ${formatTime(elapsed)}</span>`);
+  playFanfare();
+}
+
+// ---------- Audio ----------
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) audioCtx = new Ctx();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, start, dur, gainVal = 0.12) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const t0 = ctx.currentTime + start;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(gainVal, t0 + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.05);
+}
+
+function playChime() {
+  // C5, E5, G5 arpeggio
+  [523.25, 659.25, 783.99].forEach((f, i) => playTone(f, i * 0.08, 0.5));
+}
+
+function playFanfare() {
+  // longer celebratory flourish
+  const notes = [
+    [523.25, 0.0], [659.25, 0.12], [783.99, 0.24],
+    [1046.5, 0.4], [783.99, 0.6], [1046.5, 0.8, 0.18, 0.9]
+  ];
+  notes.forEach(([f, t, d = 0.4, g = 0.14]) => playTone(f, t, d, g));
+}
+
+// ---------- Tutorial ----------
+const TUTORIAL_STEPS = [
+  {
+    title: '欢迎来到十五条佛规拼图',
+    body: () => `
+      <p>此游戏以 10×10 的方格呈现完整佛规，包含 15 条佛规正文及两句先贤教诲。</p>
+      <p>你的任务：在规则被打乱后，凭记忆将每个字放回它原本的位置。</p>
+      <div class="mini-grid">
+        <div class="mc num">1</div><div class="mc">尊</div><div class="mc">敬</div><div class="mc">仙</div><div class="mc">佛</div>
+      </div>
+      <p style="font-size:13px;color:#6b3a1e;">（这是第一条佛规的示例）</p>
+    `
+  },
+  {
+    title: '观看与记忆',
+    body: () => `
+      <p>点击「开始 / 重新打乱」后，完整的拼图会显示 <b>5 秒</b>。</p>
+      <p>请利用这段时间认真观察各字位置——它是你之后能否还原的关键。</p>
+      <p>5 秒结束后，字会立即被打乱。</p>
+    `
+  },
+  {
+    title: '数字是固定锚点',
+    body: () => `
+      <p>数字（<span style="background:#f4e1a4;padding:2px 6px;border-radius:3px;color:#5c3317;font-weight:700;">1</span>–<span style="background:#f4e1a4;padding:2px 6px;border-radius:3px;color:#5c3317;font-weight:700;">15</span>）始终留在原位，不会被打乱，也无法移动。</p>
+      <p>请以它们为坐标参考，帮你回忆各字应在的位置。</p>
+      <div class="mini-grid">
+        <div class="mc num">1</div><div class="mc">尊</div><div class="mc">敬</div><div class="mc">仙</div><div class="mc">佛</div>
+        <div class="mc num">2</div><div class="mc">遵</div><div class="mc">前</div><div class="mc">提</div><div class="mc">后</div>
+      </div>
+    `
+  },
+  {
+    title: '拖曳字至空格',
+    body: () => `
+      <p>任意未锁定的字皆可被拖曳到任何一个空格中，不必相邻。</p>
+      <p>请在下方小练习中试试看：把「<b>敬</b>」拖入空白处。</p>
+      <div class="demo-board" id="demo-board"></div>
+      <div class="demo-tray" id="demo-tray"></div>
+      <div class="demo-hint" id="demo-hint">拖曳「敬」字到中间的空格</div>
+    `,
+    onEnter: setupDemo,
+  },
+  {
+    title: '完成一句即锁定',
+    body: () => `
+      <p>当一整句（例如「<b>1 尊敬仙佛</b>」）全部归位，整句会变绿并<b>自动锁定</b>，同时播放提示音。</p>
+      <p>锁定后的字无法再移动，可放心专注其它句子。</p>
+      <div class="mini-grid">
+        <div class="mc num">1</div><div class="mc done">尊</div><div class="mc done">敬</div><div class="mc done">仙</div><div class="mc done">佛</div>
+      </div>
+    `
+  },
+  {
+    title: '计时挑战',
+    body: () => `
+      <p>页面顶端的计时器会在打乱那一刻启动，并在你完成全部拼图时停下。</p>
+      <p>试着挑战自己，记录最佳时间吧！</p>
+      <p style="margin-top:14px;"><b>祝你好运。</b></p>
+    `
+  },
+];
+
+let tutorialIdx = 0;
+function openTutorial() {
+  tutorialIdx = 0;
+  document.getElementById('tutorial').classList.remove('hidden');
+  renderTutorial();
+}
+function closeTutorial() {
+  document.getElementById('tutorial').classList.add('hidden');
+}
+function tutorialNext() {
+  if (tutorialIdx >= TUTORIAL_STEPS.length - 1) { closeTutorial(); return; }
+  tutorialIdx++;
+  renderTutorial();
+}
+function tutorialPrev() {
+  if (tutorialIdx === 0) return;
+  tutorialIdx--;
+  renderTutorial();
+}
+function renderTutorial() {
+  const step = TUTORIAL_STEPS[tutorialIdx];
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-step-num').textContent = `第 ${tutorialIdx + 1} 步 / 共 ${TUTORIAL_STEPS.length} 步`;
+  document.getElementById('tut-body').innerHTML = step.body();
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = '';
+  TUTORIAL_STEPS.forEach((_, i) => {
+    const d = document.createElement('span');
+    if (i === tutorialIdx) d.classList.add('active');
+    dots.appendChild(d);
+  });
+  document.getElementById('tut-prev').style.visibility = tutorialIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('tut-next').textContent = tutorialIdx === TUTORIAL_STEPS.length - 1 ? '开始游戏' : '下一步';
+  if (step.onEnter) step.onEnter();
+}
+
+// Tutorial drag demo: 5-cell row "1 尊 [ ] 仙 佛", drag 敬 from tray into the gap.
+function setupDemo() {
+  const boardEl = document.getElementById('demo-board');
+  const trayEl = document.getElementById('demo-tray');
+  const hint = document.getElementById('demo-hint');
+  if (!boardEl) return;
+  const cells = [
+    { text: '1', cls: 'number' },
+    { text: '尊' },
+    { text: null }, // target gap
+    { text: '仙' },
+    { text: '佛' },
+  ];
+  boardEl.innerHTML = '';
+  cells.forEach((c, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.idx = i;
+    if (c.text !== null) {
+      const t = document.createElement('div');
+      t.className = 'tile' + (c.cls ? ' ' + c.cls : '');
+      t.textContent = c.text;
+      cell.appendChild(t);
+    }
+    boardEl.appendChild(cell);
+  });
+  trayEl.innerHTML = '';
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  tile.textContent = '敬';
+  tile.addEventListener('pointerdown', (e) => demoDrag(e, tile, hint));
+  trayEl.appendChild(tile);
+  hint.textContent = '拖曳「敬」字到中间的空格';
+}
+
+function demoDrag(e, el, hint) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  const rect = el.getBoundingClientRect();
+  const ghost = el.cloneNode(true);
+  ghost.classList.add('ghost');
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  document.body.appendChild(ghost);
+  el.style.visibility = 'hidden';
+  const offX = e.clientX - rect.left, offY = e.clientY - rect.top;
+  let lastCell = null;
+
+  function move(ev) {
+    ev.preventDefault();
+    ghost.style.left = (ev.clientX - offX) + 'px';
+    ghost.style.top = (ev.clientY - offY) + 'px';
+    ghost.style.display = 'none';
+    const under = document.elementFromPoint(ev.clientX, ev.clientY);
+    ghost.style.display = '';
+    const cell = under ? under.closest('#demo-board .cell') : null;
+    if (lastCell && lastCell !== cell) lastCell.classList.remove('drag-over');
+    if (cell && +cell.dataset.idx === 2) cell.classList.add('drag-over');
+    lastCell = cell;
+  }
+  function end() {
+    ghost.remove();
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', end);
+    window.removeEventListener('pointercancel', end);
+    if (lastCell && +lastCell.dataset.idx === 2) {
+      lastCell.classList.remove('drag-over');
+      const placed = document.createElement('div');
+      placed.className = 'tile phrase-locked';
+      placed.textContent = '敬';
+      lastCell.appendChild(placed);
+      el.remove();
+      hint.innerHTML = '<span style="color:#1b5e20;font-weight:bold;">做得好！这就是基本玩法。</span>';
+      playChime();
+    } else {
+      el.style.visibility = '';
+    }
+  }
+  try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  window.addEventListener('pointermove', move, { passive: false });
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
+}
+
+// init
+board = solvedBoard();
+locked = freshLocked();
+render();
+</script>
+</body>
+</html>
